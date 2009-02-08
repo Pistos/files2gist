@@ -30,7 +30,7 @@ ARGV.each do |arg|
   end
 end
 
-if files.size > 2 && ! many
+if files.size > 6 && ! many
   $stderr.puts "#{files.size} files would be made into a gist!  Confirm with --many."
   exit 2
 end
