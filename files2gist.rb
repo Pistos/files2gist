@@ -4,7 +4,7 @@ require 'net/http'
 require 'uri'
 
 def print_help_and_exit
-  $stderr.puts "#{$0} [-p|--private] [--many] <dir or file> [dir or file...]"
+  $stderr.puts "#{$0} [-p|--private] [--many] [--huge] <dir or file> [dir or file...]"
   exit 1
 end
 
@@ -15,18 +15,24 @@ end
 files = []
 priv = false
 many = false
+huge = false
 
 ARGV.each do |arg|
-  if File.file? arg
-    files << arg
-  elsif File.directory? arg
-    files += Dir[ "#{arg}/**/*", "#{arg}/**/.*" ].find_all { |x| File.file? x }
-  elsif arg == '-p' || arg == '--private'
+  case arg
+  when '-p', '--private'
     priv = true
-  elsif arg == '--many'
+  when '--many'
     many = true
-  elsif arg == '--help'
+  when '--huge'
+    huge = true
+  when '--help'
     print_help_and_exit
+  else
+    if File.file? arg
+      files << arg
+    elsif File.directory? arg
+      files += Dir[ "#{arg}/**/*", "#{arg}/**/.*" ].find_all { |x| File.file? x }
+    end
   end
 end
 
@@ -43,10 +49,19 @@ if priv
   data[ 'private' ] = 'on'
 end
 
+total_bytes = 0
 files.each_with_index do |file,index|
   i = index + 1
-  data[ "files[#{file}]" ] = File.read( file )
+  contents = File.read( file )
+  total_bytes += contents.length
+  data[ "files[#{file}]" ] = contents
 end
+
+if total_bytes > 32768 && ! huge
+  $stderr.puts "#{total_bytes} bytes would be made into a gist!  Confirm with --huge."
+  exit 3
+end
+
 res = Net::HTTP.post_form(
   URI.parse( 'http://gist.github.com/api/v1/xml/new' ),
   data
