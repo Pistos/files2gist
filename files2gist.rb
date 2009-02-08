@@ -1,8 +1,16 @@
 #!/usr/bin/env ruby
 
 require 'net/http'
-require 'cgi'
 require 'uri'
+
+def print_help_and_exit
+  puts "#{$0} <dir or file> [dir or file...]"
+  exit 1
+end
+
+if ARGV.size < 1
+  print_help_and_exit
+end
 
 files = []
 priv = false
@@ -14,6 +22,8 @@ ARGV.each do |arg|
     files += Dir[ "#{arg}/**/*", "#{arg}/**/.*" ].find_all { |x| File.file? x }
   elsif arg == '-p' || arg == '--private'
     priv = true
+  elsif arg == '--help'
+    print_help_and_exit
   end
 end
 
@@ -26,4 +36,6 @@ res = Net::HTTP.post_form(
   URI.parse( 'http://gist.github.com/api/v1/xml/new'),
   data
 )
-puts res.body
+gist_id = res.body[ /<repo>(\d+)</m, 1 ]
+puts "http://gist.github.com/#{gist_id}"
+
