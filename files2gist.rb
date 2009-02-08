@@ -4,7 +4,7 @@ require 'net/http'
 require 'uri'
 
 def print_help_and_exit
-  puts "#{$0} <dir or file> [dir or file...]"
+  $stderr.puts "#{$0} [-p|--private] [--many] <dir or file> [dir or file...]"
   exit 1
 end
 
@@ -14,6 +14,7 @@ end
 
 files = []
 priv = false
+many = false
 
 ARGV.each do |arg|
   if File.file? arg
@@ -22,9 +23,16 @@ ARGV.each do |arg|
     files += Dir[ "#{arg}/**/*", "#{arg}/**/.*" ].find_all { |x| File.file? x }
   elsif arg == '-p' || arg == '--private'
     priv = true
+  elsif arg == '--many'
+    many = true
   elsif arg == '--help'
     print_help_and_exit
   end
+end
+
+if files.size > 2 && ! many
+  $stderr.puts "#{files.size} files would be made into a gist!  Confirm with --many."
+  exit 2
 end
 
 data = {
@@ -40,7 +48,7 @@ files.each_with_index do |file,index|
   data[ "files[#{file}]" ] = File.read( file )
 end
 res = Net::HTTP.post_form(
-  URI.parse( 'http://gist.github.com/api/v1/xml/new'),
+  URI.parse( 'http://gist.github.com/api/v1/xml/new' ),
   data
 )
 gist_id = res.body[ /<repo>(.+?)</m, 1 ]
