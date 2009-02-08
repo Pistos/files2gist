@@ -27,7 +27,14 @@ ARGV.each do |arg|
   end
 end
 
-data = Hash.new
+data = {
+  'login'   => `git config --global github.user`.strip,
+  'token'   => `git config --global github.token`.strip,
+}
+if priv
+  data[ 'private' ] = 'on'
+end
+
 files.each_with_index do |file,index|
   i = index + 1
   data[ "files[#{file}]" ] = File.read( file )
@@ -36,6 +43,9 @@ res = Net::HTTP.post_form(
   URI.parse( 'http://gist.github.com/api/v1/xml/new'),
   data
 )
-gist_id = res.body[ /<repo>(\d+)</m, 1 ]
+gist_id = res.body[ /<repo>(.+?)</m, 1 ]
+
+puts res.body
+puts
 puts "http://gist.github.com/#{gist_id}"
 
